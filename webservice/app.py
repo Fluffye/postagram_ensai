@@ -58,7 +58,7 @@ bucket = os.getenv("BUCKET")
 ##                                                                                                ##
 ####################################################################################################
 
-
+from createPresignedUrl import create_presigned_url
 
 
 @app.post("/posts")
@@ -70,9 +70,21 @@ async def post_a_post(post: Post, authorization: str | None = Header(default=Non
     logger.info(f"body : {post.body}")
     logger.info(f"user : {authorization}")
 
-
+    post_id = str(uuid.uuid4())
+    object_name = f"{authorization}/{post_id}/image.png" 
+    url = create_presigned_url(bucket, object_name)
+    data = table.put_item(
+                Item={
+                    'user': f"#USER{authorization}",
+                    'id': f"#POST{post_id}",
+                    'title': post.title,
+                    'body': post.body,
+                    'image': url,
+                    'label': []
+                }
+            )
     # Doit retourner le résultat de la requête la table dynamodb
-    return res
+    return data
 
 @app.get("/posts")
 async def get_all_posts(user: Union[str, None] = None):
@@ -83,10 +95,20 @@ async def get_all_posts(user: Union[str, None] = None):
     """
     if user :
         logger.info(f"Récupération des postes de : {user}")
+        res = table.query(
+            Select='ALL_ATTRIBUTES',
+            KeyConditionExpression="user = :user",
+            ExpressionAttributeValues={
+                ":user": f"USER#{user}",
+            },
+        )
     else :
         logger.info("Récupération de tous les postes")
+        res = table.query(
+            Select='ALL_ATTRIBUTES',
+        )
      # Doit retourner une liste de posts
-    return res[""]
+    return res
 
     
 @app.delete("/posts/{post_id}")
