@@ -86,29 +86,71 @@ async def post_a_post(post: Post, authorization: str | None = Header(default=Non
     # Doit retourner le résultat de la requête la table dynamodb
     return data
 
+
+# def get_all_posts():
+#     logger.info("Récupération de tous les postes")
+#     res = table.scan()
+#     return res.get("Items", [])
+
+# def get_posts_by_user(id_user: str):
+#     logger.info(f"Récupération des postes de : {id_user}")
+#     res = table.query(
+#         Select='ALL_ATTRIBUTES',
+#         KeyConditionExpression="user = :user",
+#         ExpressionAttributeValues={
+#             ":user": f"USER#{id_user}",
+#         },
+#     )
+#     return res.get("Items", [])
+
+# Fonction pour récupérer tous les posts
+def get_all_posts():
+    logger.info("Récupération de tous les postes")
+    res = table.scan()
+    posts = res.get("Items", [])
+    
+    # Pour chaque post, ajouter l'URL pré-signée de l'image
+    for post in posts:
+        object_name = f"{post['user']}/{post['id']}/image.png"  # Chemin de l'image dans S3
+        url = create_presigned_url(bucket, object_name)
+        post['image'] = url  # Ajouter l'URL pré-signée
+
+    return posts
+
+# Fonction pour récupérer les posts d'un utilisateur
+def get_posts_by_user(id_user: str):
+    logger.info(f"Récupération des postes de : {id_user}")
+    res = table.query(
+        Select='ALL_ATTRIBUTES',
+        KeyConditionExpression="user = :user",
+        ExpressionAttributeValues={
+            ":user": f"USER#{id_user}",
+        },
+    )
+    posts = res.get("Items", [])
+
+    # Pour chaque post, ajouter l'URL pré-signée de l'image
+    for post in posts:
+        object_name = f"{post['user']}/{post['id']}/image.png"  # Chemin de l'image dans S3
+        url = create_presigned_url(bucket, object_name)
+        post['image'] = url  # Ajouter l'URL pré-signée
+
+    return posts
+
 @app.get("/posts")
-async def get_all_posts(user: Union[str, None] = None):
+async def get_posts(id_user: Union[str, None] = None):
     """
     Récupère tout les postes. 
     - Si un user est présent dans le requête, récupère uniquement les siens
     - Si aucun user n'est présent, récupère TOUS les postes de la table !!
     """
-    if user :
-        logger.info(f"Récupération des postes de : {user}")
-        res = table.query(
-            Select='ALL_ATTRIBUTES',
-            KeyConditionExpression="user = :user",
-            ExpressionAttributeValues={
-                ":user": f"USER#{user}",
-            },
-        )
-    else :
-        logger.info("Récupération de tous les postes")
-        res = table.query(
-            Select='ALL_ATTRIBUTES',
-        )
-     # Doit retourner une liste de posts
-    return res
+
+    if id_user:
+        return get_posts_by_user(id_user)
+    else:
+        return get_all_posts()
+
+
 
     
 @app.delete("/posts/{post_id}")
@@ -119,12 +161,24 @@ async def delete_post(post_id: str, authorization: str | None = Header(default=N
     # Récupération des infos du poste
 
     # S'il y a une image on la supprime de S3
-
+    object_name = f"{authorization}/{post_id}/image.png" 
+    try :
+         s3_client.delete_object(Bucket=bucket, Key=object_name)
+    finally:
+        
     # Suppression de la ligne dans la base dynamodb
 
     # Retourne le résultat de la requête de suppression
-    return item
 
+        response = table.delete_item(
+            Key={
+                'user': f"USER#{authorization}",
+                'id': f"POST#{post_id}"
+            }
+        )
+    return response
+    
+    
 
 
 #################################################################################################

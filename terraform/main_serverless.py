@@ -21,7 +21,7 @@ class ServerlessStack(TerraformStack):
         
         bucket = S3Bucket(
             self, "bucket",
-            bucket_prefix="my-postagram-bucket",
+            bucket_prefix="my-postagram-buckets",
             acl="private",
             force_destroy=True,
             versioning={"enabled":True}
@@ -40,7 +40,7 @@ class ServerlessStack(TerraformStack):
 
         dynamo_table = DynamodbTable(
             self, "DynamodDB-table",
-            name= "postagram-table",
+            name= "postagram-tables",
             hash_key="user",
             range_key="id",
             attribute=[
@@ -96,7 +96,8 @@ class ServerlessStack(TerraformStack):
 
 
 
-app = App()
-ServerlessStack(app, "cdktf_serverless")
-app.synth()
+if __name__ == "__main__":
+    app = App()
+    ServerlessStack(app, "cdktf_serverless")
+    app.synth()
 
