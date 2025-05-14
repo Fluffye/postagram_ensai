@@ -51,7 +51,6 @@ class ServerStack(TerraformStack):
 
         account_id, security_group, subnets, default_vpc = self.infra_base()
         # Charger le rôle existant
-        lab_role = DataAwsIamRole(self, "lab_role", name="LabRole")
 
         from cdktf_cdktf_provider_aws.data_aws_iam_instance_profile import DataAwsIamInstanceProfile
 
@@ -68,7 +67,7 @@ class ServerStack(TerraformStack):
             key_name="vockey",
             user_data=user_data,
             tags={"Name":"TP noté"},
-            iam_instance_profile={"arn": lab_instance_profile.arn}
+            iam_instance_profile={"name":"LabInstanceProfile"}
             )
     
 
