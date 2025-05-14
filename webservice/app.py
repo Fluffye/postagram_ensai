@@ -122,9 +122,12 @@ def get_posts_by_user(id_user: str):
     logger.info(f"Récupération des postes de : {id_user}")
     res = table.query(
         Select='ALL_ATTRIBUTES',
-        KeyConditionExpression="user = :user",
+        KeyConditionExpression="#u = :user",
+        ExpressionAttributeNames={
+            "#u": "user"
+        },
         ExpressionAttributeValues={
-            ":user": f"USER#{id_user}",
+            ":user": f"#USER{id_user}",
         },
     )
     posts = res.get("Items", [])
@@ -138,13 +141,13 @@ def get_posts_by_user(id_user: str):
     return posts
 
 @app.get("/posts")
-async def get_posts(id_user: Union[str, None] = None):
+async def get_posts(user: Union[str, None] = None):
     """
     Récupère tout les postes. 
     - Si un user est présent dans le requête, récupère uniquement les siens
     - Si aucun user n'est présent, récupère TOUS les postes de la table !!
     """
-
+    id_user = user
     if id_user:
         return get_posts_by_user(id_user)
     else:
@@ -172,8 +175,8 @@ async def delete_post(post_id: str, authorization: str | None = Header(default=N
 
         response = table.delete_item(
             Key={
-                'user': f"USER#{authorization}",
-                'id': f"POST#{post_id}"
+                'user': f"#USER{authorization}",
+                'id': f"#{post_id}"
             }
         )
     return response

@@ -14,6 +14,10 @@ import uuid
 from pathlib import Path
 from botocore.exceptions import ClientError
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 bucket = os.getenv("BUCKET")
 s3_client = boto3.client('s3', config=boto3.session.Config(signature_version='s3v4'))
 logger = logging.getLogger("uvicorn")
@@ -35,7 +39,7 @@ def getSignedUrl(filename: str,filetype: str, postId: str, user):
     except ClientError as e:
         logging.error(e)
 
-
+ 
     logger.info(f'Url: {url}')
     return {
             "uploadURL": url,
